@@ -1,0 +1,573 @@
+{
+  "name": "Linkedin Post Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "value2": "/find_topics"
+            }
+          ]
+        }
+      },
+      "name": "Check Find Topics Command",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        96
+      ],
+      "id": "987e893e-2ae4-4c15-aec5-6e2b2fb14469"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "name": "Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        448
+      ],
+      "id": "644f4a90-b4e4-470c-8961-d0d24d9296f1",
+      "webhookId": "2759f0c9-a70c-4ff9-b7da-1bf8e9ab200a",
+      "credentials": {
+        "telegramApi": {
+          "id": "3WuBb9c4YSdddwoO",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.callback_query.message.reply_markup.inline_keyboard[0][0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        320
+      ],
+      "id": "4280216f-90e3-40c5-910b-3045d70d2b9c",
+      "name": "Get Trending News"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items[0].json.articles.map((article, index) => {\n  return {\n    json: {\n      index: index + 1,\n      text: `${index + 1}. ${article.title}\\n${article.url}`,\n      url: article.url,\n      // Telegram expects exactly this key name:\n      reply_markup: {\n        inline_keyboard: [\n          [\n            {\n              text: \"📌 Select topic\",\n              callback_data: JSON.stringify({\n                // title: article.title,\n                ID: index + 1\n              })\n            }\n          ]\n        ]\n      }\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        320
+      ],
+      "id": "91852705-b9a3-4072-94c6-b3374e3e3afe",
+      "name": "Parse Trending News Topics"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Trigger').item.json.callback_query.message.chat.id }}",
+        "text": "={{ $json.text }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.url }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.reply_markup.inline_keyboard[0][0].callback_data }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        320
+      ],
+      "id": "57b4590d-04bb-44c7-9cf7-92efdd64e2f4",
+      "name": "Send Topics to Telegram",
+      "webhookId": "9dae73b1-8a90-48dd-a3d5-3b953d5765ce",
+      "credentials": {
+        "telegramApi": {
+          "id": "3WuBb9c4YSdddwoO",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.callback_query.message.reply_markup.inline_keyboard[0][0].text }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.callback_query.message.text }}",
+              "operation": "notContains",
+              "value2": "Category:"
+            }
+          ]
+        }
+      },
+      "name": "Check New Post Url",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        528
+      ],
+      "id": "b65503f4-37c7-4bb5-adbf-1490b1adfd30"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Trigger').item.json.callback_query.from.id }}",
+        "text": "={{ $json.content.parts[0].text }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        512
+      ],
+      "id": "68df6f7f-35a9-4dd6-954a-84330b0882c2",
+      "name": "Send Linkedin Post to Telegram",
+      "webhookId": "9dae73b1-8a90-48dd-a3d5-3b953d5765ce",
+      "credentials": {
+        "telegramApi": {
+          "id": "3WuBb9c4YSdddwoO",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert LinkedIn content strategist.\n\nYou will receive two inputs:\n1. A draft LinkedIn post.\n2. Feedback provided by the user.\n\nInstructions:\n- Carefully read the feedback and apply it to improve the draft post.\n- Maintain the overall structure and intent of the draft, but refine it according to the feedback.\n- Ensure the tone stays professional yet conversational, with short, scannable paragraphs.\n- Strengthen the hook if requested, tighten the language, or adjust complexity depending on the feedback.\n- End with an engaging, open-ended question.\n- Output only the improved LinkedIn post, ready for direct copy-paste (no explanations, no numbered lists).\n\nInputs:\nDraft Post:\n{{ $json.message.reply_to_message.text }}\n\nFeedback:\n{{ $json.message.text }}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        896
+      ],
+      "id": "54cbf4a7-4d57-41b6-8e5b-89f3fd575253",
+      "name": "Improve Linkedin Post",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oa7h32B8soURDBMZ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert LinkedIn content strategist.\n\nInstructions:\n1. Visit the following URL and extract the article content:\n   {{ $json.callback_query.message.reply_markup.inline_keyboard[0][0].text }}\n\n2. Do a deep research dive on the topic:\n   - Summarize the news in clear, simple words.  \n   - Enrich with concrete data, stats, timelines, or comparisons from the wider industry.  \n   - Add meaningful context: trends, competitor actions, historical parallels, or expert views.  \n   - Focus on real-world impact: who is affected, why it matters, and what could happen next.  \n   - Avoid vague or generic statements. Every line should inform, explain, or provoke thought.  \n\n3. Write a LinkedIn post in a style similar to Deedy Das:\n   - Start with a bold hook (a surprising fact, strong contrast, or sharp question).  \n   - Organize the post into **3–5 short paragraphs max**. Each para should carry one clear idea.  \n   - Keep sentences free-flowing and conversational, like explaining to a smart friend.  \n   - Use simple examples or analogies where needed.  \n   - Close with an open-ended question that sparks discussion.  \n\n4. Important:\n   - Output ONLY the final LinkedIn post (no explanations, no steps).  \n   - Make it ready for direct copy-paste.  \n   - Keep hashtags minimal and relevant (3–6).  \n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        512
+      ],
+      "id": "d501b73a-814d-4b1f-bc6c-1272d83e7db2",
+      "name": "Generate New Linkedin Post",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oa7h32B8soURDBMZ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Trigger').item.json.message.from.id }}",
+        "text": "={{ $json.content.parts[0].text }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        656,
+        896
+      ],
+      "id": "a46f4a18-6619-44d4-be5b-fe3e0ac72f6b",
+      "name": "Send Improved Linkedin Post to Telegram",
+      "webhookId": "9dae73b1-8a90-48dd-a3d5-3b953d5765ce",
+      "credentials": {
+        "telegramApi": {
+          "id": "3WuBb9c4YSdddwoO",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.reply_to_message.text }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "notEqual",
+              "value2": "/find_topics"
+            }
+          ]
+        }
+      },
+      "name": "Check Post Feedback",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        896
+      ],
+      "id": "6f276cbd-a8bb-4aa6-a46e-18012a425948"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Check New Post Url').item.json.callback_query.message.reply_markup.inline_keyboard[0][0].text }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        256,
+        704
+      ],
+      "id": "d5492f10-37cb-4aeb-94ee-b1a74393506f",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Trigger').item.json.callback_query.from.id }}",
+        "text": "={{ $json.imageUrl }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        704
+      ],
+      "id": "c2f99539-5787-4fdd-a80c-774f4bc16ac3",
+      "name": "Send Linkedin Post to Telegram1",
+      "webhookId": "9dae73b1-8a90-48dd-a3d5-3b953d5765ce",
+      "credentials": {
+        "telegramApi": {
+          "id": "3WuBb9c4YSdddwoO",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $input.first().json.data;\n\n// Match og:image and preserve everything inside content=\"\"\nconst match = html.match(/<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i) \n             || html.match(/<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i);\n\nlet imageUrl = null;\nif (match) {\n  // Decode only &amp; → & (don’t strip underscores or symbols)\n  imageUrl = match[1].replace(/&amp;/g, \"&\");\n}\n\nreturn [{ imageUrl }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        704
+      ],
+      "id": "8c7a2269-b58d-469c-9afc-5e72a8349c76",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const apiBaseHeadlines = \"https://gnews.io/api/v4/top-headlines\";\nconst apiBaseSearch = \"https://gnews.io/api/v4/search\";\nconst apiKey = \"eae60e62f351c6d8332a1db3632bf718\"; // replace with your GNews API key\n\nconst params = \"&lang=en&country=us&max=10\"; \n\n// Predefined categories\nconst categories = [\n  \"general\", \n  \"world\", \n  \"nation\", \n  \"business\", \n  \"technology\", \n  \"entertainment\", \n  \"sports\", \n  \"science\", \n  \"health\"\n];\n\n// Build list of items for categories\nlet results = categories.map(cat => {\n  return {\n    json: {\n      text: `📌 Category: ${cat.charAt(0).toUpperCase() + cat.slice(1)}`,\n      url: `${apiBaseHeadlines}?category=${cat}${params}&apikey=${apiKey}`,\n      reply_markup: {\n        inline_keyboard: [[\n          {\n            text: \"👉 Select this category\",\n            callback_data: JSON.stringify({\n              action: \"fetch_news\",\n              // url: `${apiBaseHeadlines}?category=${cat}${params}&apikey=${apiKey}`\n            })\n          }\n        ]]\n      }\n    }\n  };\n});\n\n// Add custom search API (tech + ai)\nresults.push({\n  json: {\n    text: \"📌 Category: Tech + AI (Custom Search)\",\n    url: `${apiBaseSearch}?q=tech+ai&lang=en&country=us&max=10&apikey=${apiKey}`,\n    reply_markup: {\n      inline_keyboard: [[\n        {\n          text: \"👉 Select this search\",\n          callback_data: JSON.stringify({\n            action: \"fetch_news\",\n            // url: `${apiBaseSearch}?q=tech+ai&lang=en&country=us&max=10&apikey=${apiKey}`\n          })\n        }\n      ]]\n    }\n  }\n});\n\nreturn results;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        80
+      ],
+      "id": "99aad8d9-b360-40c7-a9d9-3a6ced339282",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Trigger').item.json.message.from.id }}",
+        "text": "={{ $json.text }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.url }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.reply_markup.inline_keyboard[0][0].callback_data }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        80
+      ],
+      "id": "c8f3f820-b36f-4d58-9c03-43300bce3181",
+      "name": "Send Topics to Telegram1",
+      "webhookId": "9dae73b1-8a90-48dd-a3d5-3b953d5765ce",
+      "credentials": {
+        "telegramApi": {
+          "id": "3WuBb9c4YSdddwoO",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.callback_query.message.reply_markup.inline_keyboard[0][0].text }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.callback_query.message.text }}",
+              "operation": "contains",
+              "value2": "Category:"
+            }
+          ]
+        }
+      },
+      "name": "Check gNews Url1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        336
+      ],
+      "id": "1b6192a2-2612-4f03-8f51-699905c321f7"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Check Find Topics Command": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Find Topics Command",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check New Post Url",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Post Feedback",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check gNews Url1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Trending News": {
+      "main": [
+        [
+          {
+            "node": "Parse Trending News Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Trending News Topics": {
+      "main": [
+        [
+          {
+            "node": "Send Topics to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check New Post Url": {
+      "main": [
+        [
+          {
+            "node": "Generate New Linkedin Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Improve Linkedin Post": {
+      "main": [
+        [
+          {
+            "node": "Send Improved Linkedin Post to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate New Linkedin Post": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Linkedin Post to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Post Feedback": {
+      "main": [
+        [
+          {
+            "node": "Improve Linkedin Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Send Linkedin Post to Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Send Topics to Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check gNews Url1": {
+      "main": [
+        [
+          {
+            "node": "Get Trending News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "96c20d34-de12-4b49-b38d-d3c6fac0ac4c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9f6e127bdd6410f25738df1e59ba0d9a2cc3dc3d1057670a080464f3816c8977"
+  },
+  "id": "X4kdKkQpLDHReGKK",
+  "tags": []
+}
