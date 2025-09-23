@@ -2,3 +2,6 @@
   command = "npm install && npm run build"
   publish = "dist"
   base = "apps/web"
+
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_GEMINI_API_KEY"
