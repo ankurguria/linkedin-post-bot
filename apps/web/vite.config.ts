@@ -36,38 +36,38 @@ export default defineConfig({
     outDir: 'dist',
   },
   plugins: [
-    // nextPublicProcessEnv(),
-    // restartEnvFileChange(),
+    nextPublicProcessEnv(),
+    restartEnvFileChange(),
     // reactRouterHonoServer({
     //   serverEntryPoint: './__create/index.ts',
     //   runtime: 'node',
     // }),
-    // babel({
-    //   include: ['src/**/*.{js,jsx,ts,tsx}'], // or RegExp: /src\/.*\.[tj]sx?$/
-    //   exclude: /node_modules/, // skip everything else
-    //   babelConfig: {
-    //     babelrc: false, // don’t merge other Babel files
-    //     configFile: false,
-    //     plugins: ['styled-jsx/babel'],
-    //   },
-    // }),
-    // restart({
-    //   restart: [
-    //     'src/**/page.jsx',
-    //     'src/**/page.tsx',
-    //     'src/**/layout.jsx',
-    //     'src/**/layout.tsx',
-    //     'src/**/route.js',
-    //     'src/**/route.ts',
-    //   ],
-    // }),
-    // consoleToParent(),
-    // loadFontsFromTailwindSource(),
-    // addRenderIds(),
+    babel({
+      include: ['src/**/*.{js,jsx,ts,tsx}'], // or RegExp: /src\/.*\.[tj]sx?$/
+      exclude: /node_modules/, // skip everything else
+      babelConfig: {
+        babelrc: false, // don’t merge other Babel files
+        configFile: false,
+        plugins: ['styled-jsx/babel'],
+      },
+    }),
+    restart({
+      restart: [
+        'src/**/page.jsx',
+        'src/**/page.tsx',
+        'src/**/layout.jsx',
+        'src/**/layout.tsx',
+        'src/**/route.js',
+        'src/**/route.ts',
+      ],
+    }),
+    consoleToParent(),
+    loadFontsFromTailwindSource(),
+    addRenderIds(),
     reactRouter(),
     tsconfigPaths(),
-    // aliases(),
-    // layoutWrapperPlugin(),
+    aliases(),
+    layoutWrapperPlugin(),
   ],
   resolve: {
     alias: {
