@@ -1,6 +1,6 @@
 [build]
   command = "npm install && npm run build"
-  publish = "build/client"
+  publish = "dist"
   base = "apps/web"
 
 [build.environment]

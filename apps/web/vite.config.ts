@@ -32,6 +32,9 @@ export default defineConfig({
     ],
   },
   logLevel: 'info',
+  build: {
+    outDir: 'dist',
+  },
   plugins: [
     nextPublicProcessEnv(),
     restartEnvFileChange(),
